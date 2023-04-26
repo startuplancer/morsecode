@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Code Translator</title>
+    <script src="https://cdn.jsdelivr.net/npm/howler@2.2.3/dist/howler.min.js"></script>
+    <style>
+        body {
+          font-family: 'Arial', sans-serif;
+          background-color: #f0f0f0;
+          color: #333;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          margin: 0;
+          padding: 20px;
+        }
+
+        .container {
+          background-color: #ffffff;
+          padding: 30px;
+          border-radius: 10px;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          max-width: 600px;
+          width: 100%;
+        }
+        .dropdown {
+          position: relative;
+          display: block;
+          width: 100%;
+          margin-bottom: 20px;
+        }
+
+        .dropdown-selected {
+          font-size: 14px;
+          padding: 10px;
+          padding-right: 30px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          background-color: #fff;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5' width='16' height='20'%3E%3Cpath d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 10px center;
+          cursor: pointer;
+          box-sizing: border-box;
+          width: 100%;
+        }
+
+        .dropdown-list {
+          display: none;
+          position: absolute;
+          left: 0;
+          top: 100%;
+          margin: 2px 0;
+          padding: 0;
+          list-style: none;
+          background-color: #fff;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          z-index: 10;
+          width: 100%;
+        }
+
+
+        .dropdown-item {
+          font-size: 14px;
+          padding: 10px 20px;
+          cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+          background-color: #f0f0f0;
+        }
+
+        h1 {
+          font-size: 24px;
+          font-weight: bold;
+          text-align: center;
+          margin: 0 0 20px;
+        }
+
+        label {
+          font-size: 14px;
+          font-weight: bold;
+          display: block;
+          margin: 10px 0;
+        }
+
+        select,
+        textarea,
+        button {
+          font-family: 'Arial', sans-serif;
+          font-size: 14px;
+          width: 100%;
+          box-sizing: border-box;
+          margin-bottom: 20px;
+        }
+
+        textarea {
+          resize: none;
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+        }
+
+        button {
+          cursor: pointer;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 5px;
+          color: #fff;
+          background-color: #007bff;
+          box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+          transition: background-color 0.2s;
+        }
+
+        button[type="submit"]:hover {
+          background-color: #0056b3;
+        }
+
+        button[type="button"]:hover {
+          background-color: #004499;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Morse Code Translator</h1>
+        <form id="translator-form">
+            <label for="mode">Mode:</label>
+            <div class="dropdown">
+                <div class="dropdown-selected" id="selected-mode">Text to Morse</div>
+                <ul class="dropdown-list" id="mode-list">
+                    <li class="dropdown-item" data-value="toMorse">Text to Morse</li>
+                    <li class="dropdown-item" data-value="fromMorse">Morse to Text</li>
+                </ul>
+            </div>
+            <br>
+            <label for="input">Input:</label>
+            <textarea id="input" name="input" rows="5" cols="30"></textarea>
+            <br>
+            <label for="output">Output:</label>
+            <textarea id="output" rows="5" cols="30" readonly></textarea>
+            <br>
+            <button type="submit">Translate</button>
+            <button type="button" id="play">Play Morse Audio</button>
+        </form>
+    </div>
+    <script>
+    const form = document.getElementById('translator-form');
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const playButton = document.getElementById('play');
+    const modeSelect = document.getElementById('mode');
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const mode = document.querySelector('.dropdown-selected').textContent === 'Text to Morse' ? 'toMorse' : 'fromMorse';
+        const text = input.value;
+
+        const response = await fetch('/translate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ mode, text })
+        });
+
+        const translatedText = await response.text();
+        output.value = translatedText;
+    });
+
+    playButton.addEventListener('click', () => {
+        const morseText = output.value;
+        playMorseAudio(morseText);
+    });
+
+    function playMorseAudio(morseText) {
+        const dot = new Howl({ src: ['dot.wav'] });
+        const dash = new Howl({ src: ['dash.wav'] });
+
+        let timeout = 0;
+
+        morseText.split('').forEach((char) => {
+            setTimeout(() => {
+                if (char === '.') {
+                    dot.play();
+                } else if (char === '-') {
+                    dash.play();
+                }
+            }, timeout);
+
+            if (char === '.' || char === '-') {
+                timeout += 200;
+            } else if (char === ' ') {
+                timeout += 400;
+            }
+        });
+    }
+    const dropdownSelected = document.getElementById('selected-mode');
+    const dropdownList = document.getElementById('mode-list');
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+
+    dropdownSelected.addEventListener('click', () => {
+        dropdownList.style.display = dropdownList.style.display === 'block' ? 'none' : 'block';
+    });
+
+    dropdownItems.forEach((item) => {
+        item.addEventListener('click', () => {
+            dropdownSelected.textContent = item.textContent;
+            dropdownList.style.display = 'none';
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.dropdown')) {
+            dropdownList.style.display = 'none';
+        }
+    });
+    </script>
+</body>
+
+</html>
